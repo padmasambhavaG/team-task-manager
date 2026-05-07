@@ -18,9 +18,11 @@ A full-stack Team Task Management web app built for the coding assignment. Users
 - JWT-protected APIs
 - Project creation with creator as `ADMIN`
 - Project members with `ADMIN` or `MEMBER` role
-- Admin can add/remove members and manage tasks
+- Admin can add/remove members, delete projects, and manage tasks
 - Member can view projects and update only assigned tasks
-- Dashboard with total tasks, status counts, overdue tasks, and tasks per user
+- Task assignment validation so every task is assigned to an admin or member
+- Dashboard with project, task, member shortcuts, status counts, overdue tasks, and tasks per user
+- Light and dark theme support
 - Railway-ready environment variable setup
 
 ## Project Structure
@@ -52,6 +54,10 @@ frontend/
     App.jsx
     main.jsx
     styles.css
+
+docs/
+  design/
+    teamtask-refresh-concept.png
 ```
 
 ## Local Setup
@@ -125,6 +131,8 @@ Build Command: npm install
 Start Command: npm run railway:start
 ```
 
+`railway:start` runs Prisma migrations, seeds the demo admin/member accounts, and then starts the API.
+
 ### Frontend Railway Variables
 
 ```env
@@ -155,4 +163,3 @@ Do not push `.env` files. Use `.env.example` files for documentation.
 ## Interview Explanation
 
 The app uses PostgreSQL because the data is relational: users belong to projects, projects have members, and tasks belong to projects and assignees. `ProjectMember` is the important table because it stores the user's role inside each project. Admin checks are handled in backend route logic before allowing member or task management. Members can only update the status of tasks assigned to them.
-

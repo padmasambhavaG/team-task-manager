@@ -3,17 +3,27 @@ import { Plus, UserPlus } from "lucide-react";
 import { apiRequest } from "../api/client.js";
 import { EmptyState } from "./EmptyState.jsx";
 import { TaskModal } from "./TaskModal.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { formatDate, formatPriority, formatStatus, isOverdue } from "../utils/format.js";
 
-export function ProjectPanel({ projectId, onDataChange }) {
+export function ProjectPanel({ projectId, section = "projects", onDataChange }) {
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [memberError, setMemberError] = useState("");
   const [memberForm, setMemberForm] = useState({ email: "", role: "MEMBER" });
   const [showTaskModal, setShowTaskModal] = useState(false);
 
   const isAdmin = project?.role === "ADMIN";
+  const visibleMembers = useMemo(() => {
+    return (
+      project?.members.filter(
+        (member) => member.role === "MEMBER" && member.user.id !== user?.id,
+      ) || []
+    );
+  }, [project, user?.id]);
 
   const taskStats = useMemo(() => {
     return tasks.reduce(
@@ -57,12 +67,23 @@ export function ProjectPanel({ projectId, onDataChange }) {
 
   async function addMember(event) {
     event.preventDefault();
-    await apiRequest(`/projects/${projectId}/members`, {
-      method: "POST",
-      body: memberForm,
-    });
-    setMemberForm({ email: "", role: "MEMBER" });
-    await refreshProject();
+    setMemberError("");
+
+    if (memberForm.email.trim().toLowerCase() === user?.email?.toLowerCase()) {
+      setMemberError("You cannot invite yourself or change your own role.");
+      return;
+    }
+
+    try {
+      await apiRequest(`/projects/${projectId}/members`, {
+        method: "POST",
+        body: memberForm,
+      });
+      setMemberForm({ email: "", role: "MEMBER" });
+      await refreshProject();
+    } catch (err) {
+      setMemberError(err.message);
+    }
   }
 
   async function removeMember(userId) {
@@ -114,10 +135,10 @@ export function ProjectPanel({ projectId, onDataChange }) {
     return <EmptyState title="Could not load project" message={error} />;
   }
 
-  return (
-    <section className="project-layout">
-      <div className="project-main">
-        <section className="panel">
+  function renderProjectOverview() {
+    return (
+      <section className="project-main single-column">
+        <section className="panel project-overview-panel">
           <div className="panel-header">
             <div>
               <p className="muted-label">Project overview</p>
@@ -146,13 +167,25 @@ export function ProjectPanel({ projectId, onDataChange }) {
             </div>
           </div>
         </section>
+      </section>
+    );
+  }
 
+  function renderTasks() {
+    return (
+      <section className="project-main single-column">
         <section className="panel">
           <div className="panel-header">
             <div>
               <p className="muted-label">Tasks</p>
               <h3>Status tracking</h3>
             </div>
+            {isAdmin && (
+              <button className="primary-button" type="button" onClick={() => setShowTaskModal(true)}>
+                <Plus size={16} />
+                Add Task
+              </button>
+            )}
           </div>
           <div className="task-table-wrap">
             <table className="task-table">
@@ -216,9 +249,13 @@ export function ProjectPanel({ projectId, onDataChange }) {
             )}
           </div>
         </section>
-      </div>
+      </section>
+    );
+  }
 
-      <aside className="project-side">
+  function renderMembers() {
+    return (
+      <section className="project-main single-column">
         <section className="panel">
           <div className="panel-header">
             <div>
@@ -228,7 +265,7 @@ export function ProjectPanel({ projectId, onDataChange }) {
           </div>
 
           <div className="member-list">
-            {project.members.map((member) => (
+            {visibleMembers.map((member) => (
               <div className="member-row" key={member.user.id}>
                 <div>
                   <strong>{member.user.name}</strong>
@@ -247,6 +284,12 @@ export function ProjectPanel({ projectId, onDataChange }) {
                 )}
               </div>
             ))}
+            {!visibleMembers.length && (
+              <EmptyState
+                title="No members yet"
+                message="Invite members to collaborate on this project."
+              />
+            )}
           </div>
 
           {isAdmin && (
@@ -281,6 +324,7 @@ export function ProjectPanel({ projectId, onDataChange }) {
                   <option value="ADMIN">Admin</option>
                 </select>
               </label>
+              {memberError && <p className="form-error">{memberError}</p>}
               <button className="secondary-button full-width" type="submit">
                 <UserPlus size={16} />
                 Invite Member
@@ -288,7 +332,15 @@ export function ProjectPanel({ projectId, onDataChange }) {
             </form>
           )}
         </section>
-      </aside>
+      </section>
+    );
+  }
+
+  return (
+    <section className="project-section">
+      {section === "tasks" && renderTasks()}
+      {section === "members" && renderMembers()}
+      {section !== "tasks" && section !== "members" && renderProjectOverview()}
 
       {showTaskModal && (
         <TaskModal
@@ -300,4 +352,3 @@ export function ProjectPanel({ projectId, onDataChange }) {
     </section>
   );
 }
-

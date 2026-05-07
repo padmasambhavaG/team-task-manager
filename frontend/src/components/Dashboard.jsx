@@ -1,8 +1,16 @@
-import { AlertTriangle, CheckCircle2, Clock3, ListTodo } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  FolderKanban,
+  ListTodo,
+  Users,
+} from "lucide-react";
 import { EmptyState } from "./EmptyState.jsx";
 import { formatDate, formatStatus, isOverdue } from "../utils/format.js";
 
-export function Dashboard({ dashboard }) {
+export function Dashboard({ dashboard, projects = [], selectedProject, onNavigate }) {
   if (!dashboard) {
     return <EmptyState title="Loading dashboard" message="Fetching task summary." />;
   }
@@ -39,9 +47,72 @@ export function Dashboard({ dashboard }) {
       tone: "red",
     },
   ];
+  const memberCount = selectedProject?.members?.length || 0;
+  const sectionCards = [
+    {
+      key: "projects",
+      label: "Projects",
+      value: projects.length,
+      text: "Create and review project workspaces",
+      icon: FolderKanban,
+    },
+    {
+      key: "tasks",
+      label: "Tasks",
+      value: dashboard.totalTasks,
+      text: "Track assigned work and progress",
+      icon: ListTodo,
+    },
+    {
+      key: "members",
+      label: "Members",
+      value: memberCount,
+      text: "Manage team access and roles",
+      icon: Users,
+    },
+  ];
 
   return (
     <section className="dashboard-grid">
+      <section className="dashboard-hero">
+        <div>
+          <p className="muted-label">Dashboard</p>
+          <h1>Workspace overview</h1>
+          <span>
+            {selectedProject?.name || "No project selected"} gives you a quick view of
+            projects, tasks, team members, and overdue work.
+          </span>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate("tasks")}>
+          <ListTodo size={16} />
+          Review Tasks
+        </button>
+      </section>
+
+      <div className="section-card-grid">
+        {sectionCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <button
+              className="section-card"
+              key={card.key}
+              type="button"
+              onClick={() => onNavigate(card.key)}
+            >
+              <span className="section-card-icon">
+                <Icon size={19} />
+              </span>
+              <span>
+                <strong>{card.label}</strong>
+                <small>{card.text}</small>
+              </span>
+              <em>{card.value}</em>
+              <ArrowRight size={17} />
+            </button>
+          );
+        })}
+      </div>
+
       <div className="metric-grid">
         {cards.map((card) => {
           const Icon = card.icon;
@@ -118,4 +189,3 @@ export function Dashboard({ dashboard }) {
     </section>
   );
 }
-

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 
 const initialForm = {
   title: "",
@@ -24,12 +25,18 @@ export function TaskModal({ members, onClose, onSubmit }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
+
+    if (!form.assigneeId) {
+      setError("Validation failed: task must be assigned to a user.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       await onSubmit({
         ...form,
-        assigneeId: form.assigneeId || null,
+        assigneeId: form.assigneeId,
       });
       onClose();
     } catch (err) {
@@ -41,85 +48,102 @@ export function TaskModal({ members, onClose, onSubmit }) {
 
   return (
     <div className="modal-backdrop">
-      <section className="modal">
-        <div className="panel-header">
+      <section className="modal modal-large" aria-labelledby="task-modal-title">
+        <div className="modal-header">
           <div>
             <p className="muted-label">Task creation</p>
-            <h3>Add Task</h3>
+            <h3 id="task-modal-title">Add Task</h3>
           </div>
-          <button className="ghost-button" type="button" onClick={onClose}>
-            Close
+          <button
+            className="modal-close-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close task dialog"
+          >
+            <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Title
-            <input
-              name="title"
-              value={form.title}
-              onChange={updateField}
-              placeholder="Write API tests"
-              required
-            />
-          </label>
-          <label>
-            Description
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={updateField}
-              placeholder="Add short implementation notes"
-              rows={3}
-            />
-          </label>
-          <div className="form-grid">
+        <form className="modal-form" onSubmit={handleSubmit}>
+          <div className="modal-body">
             <label>
-              Due Date
+              Title
               <input
-                name="dueDate"
-                type="date"
-                value={form.dueDate}
+                name="title"
+                value={form.title}
                 onChange={updateField}
+                placeholder="Write API tests"
                 required
               />
             </label>
             <label>
-              Priority
-              <select name="priority" value={form.priority} onChange={updateField}>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-              </select>
+              Description
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={updateField}
+                placeholder="Add short implementation notes"
+                rows={3}
+              />
             </label>
-          </div>
-          <div className="form-grid">
-            <label>
-              Status
-              <select name="status" value={form.status} onChange={updateField}>
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="DONE">Done</option>
-              </select>
-            </label>
-            <label>
-              Assignee
-              <select name="assigneeId" value={form.assigneeId} onChange={updateField}>
-                <option value="">Unassigned</option>
-                {members.map((member) => (
-                  <option key={member.user.id} value={member.user.id}>
-                    {member.user.name}
+            <div className="form-grid">
+              <label>
+                Due Date
+                <input
+                  name="dueDate"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={updateField}
+                  required
+                />
+              </label>
+              <label>
+                Priority
+                <select name="priority" value={form.priority} onChange={updateField}>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                </select>
+              </label>
+            </div>
+            <div className="form-grid">
+              <label>
+                Status
+                <select name="status" value={form.status} onChange={updateField}>
+                  <option value="TODO">To Do</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="DONE">Done</option>
+                </select>
+              </label>
+              <label>
+                Assignee
+                <select
+                  name="assigneeId"
+                  value={form.assigneeId}
+                  onChange={updateField}
+                >
+                  <option value="" disabled>
+                    Select assignee
                   </option>
-                ))}
-              </select>
-            </label>
+                  {members.map((member) => (
+                    <option key={member.user.id} value={member.user.id}>
+                      {member.user.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {error && <p className="form-error">{error}</p>}
           </div>
-          {error && <p className="form-error">{error}</p>}
-          <button className="primary-button full-width" disabled={submitting}>
-            {submitting ? "Saving..." : "Add Task"}
-          </button>
+          <div className="modal-actions">
+            <button className="ghost-button" type="button" onClick={onClose}>
+              Cancel
+            </button>
+            <button className="primary-button" disabled={submitting}>
+              {submitting ? "Saving..." : "Add Task"}
+            </button>
+          </div>
         </form>
       </section>
     </div>
   );
 }
-

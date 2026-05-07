@@ -91,6 +91,17 @@ export async function updateProject(req, res) {
   res.json({ project: projectResponse(project, "ADMIN") });
 }
 
+export async function deleteProject(req, res) {
+  const { projectId } = req.validated.params;
+  await requireProjectAdmin(req.user.userId, projectId);
+
+  await prisma.project.delete({
+    where: { id: projectId },
+  });
+
+  res.status(204).send();
+}
+
 export async function addMember(req, res) {
   const { projectId } = req.validated.params;
   const { email, role } = req.validated.body;
@@ -99,6 +110,10 @@ export async function addMember(req, res) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     throw new HttpError(404, "No registered user found with this email");
+  }
+
+  if (user.id === req.user.userId) {
+    throw new HttpError(400, "Admins cannot invite themselves or change their own role");
   }
 
   const member = await prisma.projectMember.upsert({
@@ -135,6 +150,10 @@ export async function updateMember(req, res) {
   const { projectId, userId } = req.validated.params;
   const { role } = req.validated.body;
   await requireProjectAdmin(req.user.userId, projectId);
+
+  if (userId === req.user.userId) {
+    throw new HttpError(400, "Admins cannot change their own role");
+  }
 
   const adminCount = await prisma.projectMember.count({
     where: { projectId, role: "ADMIN" },
@@ -176,6 +195,10 @@ export async function removeMember(req, res) {
   const { projectId, userId } = req.validated.params;
   await requireProjectAdmin(req.user.userId, projectId);
 
+  if (userId === req.user.userId) {
+    throw new HttpError(400, "Admins cannot remove themselves from a project");
+  }
+
   const member = await prisma.projectMember.findUnique({
     where: { userId_projectId: { userId, projectId } },
   });
@@ -198,9 +221,8 @@ export async function removeMember(req, res) {
 
   await prisma.task.updateMany({
     where: { projectId, assigneeId: userId },
-    data: { assigneeId: null },
+    data: { assigneeId: req.user.userId },
   });
 
   res.status(204).send();
 }
-

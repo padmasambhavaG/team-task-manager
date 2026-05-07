@@ -2,6 +2,12 @@ import { z } from "zod";
 
 const statusSchema = z.enum(["TODO", "IN_PROGRESS", "DONE"]);
 const prioritySchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+const assigneeSchema = z
+  .string({
+    required_error: "Task must be assigned to a user",
+    invalid_type_error: "Task must be assigned to a user",
+  })
+  .min(1, "Task must be assigned to a user");
 
 export const listTasksSchema = z.object({
   params: z.object({
@@ -19,7 +25,7 @@ export const createTaskSchema = z.object({
     dueDate: z.coerce.date(),
     priority: prioritySchema.default("MEDIUM"),
     status: statusSchema.default("TODO"),
-    assigneeId: z.string().min(1).optional().nullable(),
+    assigneeId: assigneeSchema,
   }),
 });
 
@@ -34,10 +40,9 @@ export const updateTaskSchema = z.object({
       dueDate: z.coerce.date().optional(),
       priority: prioritySchema.optional(),
       status: statusSchema.optional(),
-      assigneeId: z.string().min(1).optional().nullable(),
+      assigneeId: assigneeSchema.optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "At least one field is required",
     }),
 });
-

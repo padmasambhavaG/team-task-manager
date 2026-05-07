@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 
 export function ProjectModal({ onClose, onSubmit }) {
   const [form, setForm] = useState({
@@ -31,44 +32,55 @@ export function ProjectModal({ onClose, onSubmit }) {
 
   return (
     <div className="modal-backdrop">
-      <section className="modal">
-        <div className="panel-header">
+      <section className="modal modal-small" aria-labelledby="project-modal-title">
+        <div className="modal-header">
           <div>
             <p className="muted-label">New project</p>
-            <h3>Create project</h3>
+            <h3 id="project-modal-title">Create project</h3>
           </div>
-          <button className="ghost-button" type="button" onClick={onClose}>
-            Close
+          <button
+            className="modal-close-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close project dialog"
+          >
+            <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Project name
-            <input
-              name="name"
-              value={form.name}
-              onChange={updateField}
-              placeholder="Product Launch"
-              required
-            />
-          </label>
-          <label>
-            Description
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={updateField}
-              placeholder="What is this project about?"
-              rows={4}
-            />
-          </label>
-          {error && <p className="form-error">{error}</p>}
-          <button className="primary-button full-width" disabled={submitting}>
-            {submitting ? "Creating..." : "Create project"}
-          </button>
+        <form className="modal-form" onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <label>
+              Project name
+              <input
+                name="name"
+                value={form.name}
+                onChange={updateField}
+                placeholder="Product Launch"
+                required
+              />
+            </label>
+            <label>
+              Description
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={updateField}
+                placeholder="What is this project about?"
+                rows={3}
+              />
+            </label>
+            {error && <p className="form-error">{error}</p>}
+          </div>
+          <div className="modal-actions">
+            <button className="ghost-button" type="button" onClick={onClose}>
+              Cancel
+            </button>
+            <button className="primary-button" disabled={submitting}>
+              {submitting ? "Creating..." : "Create project"}
+            </button>
+          </div>
         </form>
       </section>
     </div>
   );
 }
-

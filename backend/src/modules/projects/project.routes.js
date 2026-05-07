@@ -5,6 +5,7 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import {
   addMember,
   createProject,
+  deleteProject,
   getProject,
   listProjects,
   removeMember,
@@ -32,7 +33,8 @@ projectRouter
 projectRouter
   .route("/:projectId")
   .get(validate(projectIdSchema), asyncHandler(getProject))
-  .patch(validate(updateProjectSchema), asyncHandler(updateProject));
+  .patch(validate(updateProjectSchema), asyncHandler(updateProject))
+  .delete(validate(projectIdSchema), asyncHandler(deleteProject));
 
 projectRouter.post(
   "/:projectId/members",
@@ -51,4 +53,3 @@ projectRouter.delete(
   validate(removeMemberSchema),
   asyncHandler(removeMember),
 );
-

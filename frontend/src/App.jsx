@@ -12,6 +12,8 @@ export function App() {
   const { user, loading } = useAuth();
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [theme, setTheme] = useState(() => localStorage.getItem("teamtask_theme") || "light");
   const [dashboard, setDashboard] = useState(null);
   const [error, setError] = useState("");
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -37,6 +39,11 @@ export function App() {
     loadWorkspace();
   }, [user]);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("teamtask_theme", theme);
+  }, [theme]);
+
   async function createProject(payload) {
     const data = await apiRequest("/projects", {
       method: "POST",
@@ -45,6 +52,65 @@ export function App() {
     setProjects((current) => [data.project, ...current]);
     setSelectedProjectId(data.project.id);
     await loadWorkspace();
+  }
+
+  async function deleteProject(projectId) {
+    const project = projects.find((item) => item.id === projectId);
+    if (!project || project.role !== "ADMIN") return;
+
+    const confirmed = window.confirm(
+      `Delete project "${project.name}"? This also removes its tasks and member access.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await apiRequest(`/projects/${projectId}`, {
+        method: "DELETE",
+      });
+
+      const remainingProjects = projects.filter((item) => item.id !== projectId);
+      setProjects(remainingProjects);
+
+      if (selectedProjectId === projectId) {
+        setSelectedProjectId(remainingProjects[0]?.id || "");
+        setActiveSection("dashboard");
+      }
+
+      await loadWorkspace();
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function renderActiveSection() {
+    if (!projects.length) {
+      return (
+        <EmptyState
+          title="No projects yet"
+          message="Create a project to add members and assign tasks."
+        />
+      );
+    }
+
+    if (activeSection === "dashboard") {
+      return (
+        <Dashboard
+          dashboard={dashboard}
+          projects={projects}
+          selectedProject={projects.find((project) => project.id === selectedProjectId)}
+          onNavigate={setActiveSection}
+        />
+      );
+    }
+
+    return (
+      <ProjectPanel
+        projectId={selectedProjectId}
+        section={activeSection}
+        onDataChange={loadWorkspace}
+      />
+    );
   }
 
   if (loading) {
@@ -62,24 +128,21 @@ export function App() {
 
   return (
     <AppShell
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      theme={theme}
+      onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
       projects={projects}
       selectedProjectId={selectedProjectId}
-      onSelectProject={setSelectedProjectId}
+      onSelectProject={(projectId) => {
+        setSelectedProjectId(projectId);
+        setActiveSection("projects");
+      }}
       onCreateProject={() => setShowProjectModal(true)}
+      onDeleteProject={deleteProject}
     >
       {error && <div className="banner-error">{error}</div>}
-      <Dashboard dashboard={dashboard} />
-      {projects.length ? (
-        <ProjectPanel
-          projectId={selectedProjectId}
-          onDataChange={loadWorkspace}
-        />
-      ) : (
-        <EmptyState
-          title="No projects yet"
-          message="Create a project to add members and assign tasks."
-        />
-      )}
+      {renderActiveSection()}
       {showProjectModal && (
         <ProjectModal
           onClose={() => setShowProjectModal(false)}
@@ -89,4 +152,3 @@ export function App() {
     </AppShell>
   );
 }
-

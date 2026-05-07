@@ -43,8 +43,48 @@ async function main() {
     },
   });
 
+  await prisma.projectMember.upsert({
+    where: {
+      userId_projectId: {
+        userId: admin.id,
+        projectId: project.id,
+      },
+    },
+    update: { role: "ADMIN" },
+    create: {
+      userId: admin.id,
+      projectId: project.id,
+      role: "ADMIN",
+    },
+  });
+
+  await prisma.projectMember.upsert({
+    where: {
+      userId_projectId: {
+        userId: member.id,
+        projectId: project.id,
+      },
+    },
+    update: { role: "MEMBER" },
+    create: {
+      userId: member.id,
+      projectId: project.id,
+      role: "MEMBER",
+    },
+  });
+
   const existingTasks = await prisma.task.count({
     where: { projectId: project.id },
+  });
+
+  await prisma.task.updateMany({
+    where: {
+      projectId: project.id,
+      assigneeId: null,
+    },
+    data: {
+      assigneeId: admin.id,
+    },
   });
 
   if (existingTasks === 0) {
@@ -94,4 +134,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-
